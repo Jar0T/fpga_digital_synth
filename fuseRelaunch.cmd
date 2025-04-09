@@ -1,1 +1,1 @@
--intstyle "ise" -incremental -lib "secureip" -o "/home/jarek/sources/vhdl/digital_synth/oscillator_tb_isim_beh.exe" -prj "/home/jarek/sources/vhdl/digital_synth/oscillator_tb_beh.prj" "work.oscillator_tb" 
+-intstyle "ise" -incremental -lib "secureip" -o "/home/jarek/sources/vhdl/digital_synth/adsr_envelope_tb_isim_beh.exe" -prj "/home/jarek/sources/vhdl/digital_synth/adsr_envelope_tb_beh.prj" "work.adsr_envelope_tb" 

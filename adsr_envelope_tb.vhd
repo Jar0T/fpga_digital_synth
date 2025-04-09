@@ -1,0 +1,180 @@
+--------------------------------------------------------------------------------
+-- Company: 
+-- Engineer:
+--
+-- Create Date:   21:03:18 04/07/2025
+-- Design Name:   
+-- Module Name:   /home/jarek/sources/vhdl/digital_synth/adsr_envelope_tb.vhd
+-- Project Name:  digital_synth
+-- Target Device:  
+-- Tool versions:  
+-- Description:   
+-- 
+-- VHDL Test Bench Created by ISE for module: adsr_envelope
+-- 
+-- Dependencies:
+-- 
+-- Revision:
+-- Revision 0.01 - File Created
+-- Additional Comments:
+--
+-- Notes: 
+-- This testbench has been automatically generated using types std_logic and
+-- std_logic_vector for the ports of the unit under test.  Xilinx recommends
+-- that these types always be used for the top-level I/O of a design in order
+-- to guarantee that the testbench will bind correctly to the post-implementation 
+-- simulation model.
+--------------------------------------------------------------------------------
+LIBRARY ieee;
+USE ieee.std_logic_1164.ALL;
+use IEEE.NUMERIC_STD.ALL;
+use ieee.std_logic_textio.all;
+use std.textio.all;
+ 
+-- Uncomment the following library declaration if using
+-- arithmetic functions with Signed or Unsigned values
+--USE ieee.numeric_std.ALL;
+
+library work;
+use work.adsr_envelope_pkg.all;
+ 
+ENTITY adsr_envelope_tb IS
+END adsr_envelope_tb;
+ 
+ARCHITECTURE behavior OF adsr_envelope_tb IS 
+ 
+    -- Component Declaration for the Unit Under Test (UUT)
+ 
+    component adsr_envelope
+    Port(
+        i_clk : in std_logic;
+        i_reset : in std_logic;
+        i_en : in std_logic;
+        i_note_on : in std_logic;
+        i_note_off : in std_logic;
+        i_attack_step : in unsigned(31 downto 0);
+        i_decay_step : in unsigned(31 downto 0);
+        i_sustain_level : in unsigned(31 downto 0);
+        i_release_step : in unsigned(31 downto 0);
+        i_sample : in signed(15 downto 0);
+        o_signal : out signed(15 downto 0)
+        );
+    end component;
+    
+
+   --Inputs
+   signal i_clk : std_logic := '0';
+   signal i_reset : std_logic := '0';
+   signal i_en : std_logic := '0';
+   signal i_note_on : std_logic := '0';
+   signal i_note_off : std_logic := '0';
+   signal i_attack_step : unsigned(31 downto 0) := (others => '0');
+   signal i_decay_step : unsigned(31 downto 0) := (others => '0');
+   signal i_sustain_level : unsigned(31 downto 0) := (others => '0');
+   signal i_release_step : unsigned(31 downto 0) := (others => '0');
+   signal i_sample : signed(15 downto 0) := (others => '0');
+
+ 	--Outputs
+   signal o_signal : signed(15 downto 0);
+
+   -- Clock period definitions
+   constant i_clk_period : time := 10 ns;
+   
+   constant i_clk_freq : integer := 100_000_000;
+   constant sample_freq : integer := 48_000;
+   constant sample_period : time := 1 sec / sample_freq;
+   
+   signal clk_en_cnt : integer := 0;
+   
+   constant attack_time : time := 3 ms;
+   constant decay_time : time := 4 ms;
+   constant sustain_level : unsigned(31 downto 0) := X"3333_3333";
+   constant release_time : time := 5 ms;
+   constant sustain_time : time := 6 ms;
+   
+   constant attack_step : unsigned(31 downto 0) := MAX_AMPLITUDE / to_unsigned(integer(attack_time / sample_period), 32);
+   constant decay_step : unsigned(31 downto 0) := (MAX_AMPLITUDE - sustain_level) / to_unsigned(integer(decay_time / sample_period), 32);
+   constant release_step : unsigned(31 downto 0) := sustain_level / to_unsigned(integer(release_time / sample_period), 32);
+ 
+BEGIN
+ 
+	-- Instantiate the Unit Under Test (UUT)
+   uut: adsr_envelope PORT MAP (
+          i_clk => i_clk,
+          i_reset => i_reset,
+          i_en => i_en,
+          i_note_on => i_note_on,
+          i_note_off => i_note_off,
+          i_attack_step => i_attack_step,
+          i_decay_step => i_decay_step,
+          i_sustain_level => i_sustain_level,
+          i_release_step => i_release_step,
+          i_sample => i_sample,
+          o_signal => o_signal
+        );
+
+   -- Clock process definitions
+   i_clk_process :process
+   begin
+		i_clk <= '0';
+		wait for i_clk_period/2;
+		i_clk <= '1';
+		wait for i_clk_period/2;
+   end process;
+   
+    process(i_clk)
+    begin
+        if rising_edge(i_clk) then
+            if clk_en_cnt = (i_clk_freq / sample_freq) - 1 then
+                clk_en_cnt <= 0;
+                i_en <= '1';
+            else
+                clk_en_cnt <= clk_en_cnt + 1;
+                i_en <= '0';
+            end if;
+        end if;
+    end process;
+ 
+
+   -- Stimulus process
+   stim_proc: process
+   begin		
+      -- insert stimulus here
+      i_attack_step <= attack_step;
+      i_decay_step <= decay_step;
+      i_release_step <= release_step;
+      i_sustain_level <= sustain_level;
+      wait for i_clk_period * 10;
+      
+      i_sample <= X"7FFF";
+      i_note_on <= '1';
+      wait for i_clk_period;
+      i_note_on <= '0';
+      wait for attack_time;
+      wait for decay_time;
+      wait for sustain_time;
+      i_note_off <= '1';
+      wait for i_clk_period;
+      i_note_off <= '0';
+
+      wait;
+   end process;
+   
+   -- Process for logging output samples to csv file
+    process
+        file out_file : text open write_mode is "adsr_dump.csv";
+        variable line_buf : line;
+    begin
+        write(line_buf, "Time,adsr0");
+        writeline(out_file, line_buf);
+        
+        loop
+            write(line_buf, now);
+            write(line_buf, string'(","));
+            write(line_buf, to_integer(o_signal));
+            writeline(out_file, line_buf);
+            wait until i_en = '1';
+        end loop;
+    end process;
+
+END;
