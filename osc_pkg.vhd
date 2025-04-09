@@ -11,15 +11,17 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.all;
 use IEEE.NUMERIC_STD.ALL;
 
+library work;
+use work.common_pkg.all;
+
 package osc_pkg is
 
-    constant N_OSC : integer := 8;
     constant PHASE_WIDTH : integer := 32;
     constant SAMPLE_WIDTH : integer := 16;
     constant SAMPLE_ADDR_WIDTH : integer := 9;
     
-    type t_phase_step_array is array(0 to N_OSC - 1) of unsigned(PHASE_WIDTH - 1 downto 0);
-    type t_sample_array is array(0 to N_OSC - 1) of signed(SAMPLE_WIDTH - 1 downto 0);
+    type t_phase_step_array is array(0 to N_CHANNELS - 1) of unsigned(PHASE_WIDTH - 1 downto 0);
+    type t_sample_array is array(0 to N_CHANNELS - 1) of signed(SAMPLE_WIDTH - 1 downto 0);
     
     type t_wave_lut is array(0 to 2**SAMPLE_ADDR_WIDTH - 1) of signed(SAMPLE_WIDTH - 1 downto 0);
     

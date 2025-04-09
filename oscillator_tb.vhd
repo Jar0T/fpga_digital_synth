@@ -37,6 +37,7 @@ use std.textio.all;
 
 library work;
 use work.osc_pkg.all;
+use work.common_pkg.all;
  
 ENTITY oscillator_tb IS
 END oscillator_tb;
@@ -103,7 +104,7 @@ BEGIN
     stim_proc: process
     begin
         -- insert stimulus here
-        for i in 0 to N_OSC - 1 loop
+        for i in 0 to N_CHANNELS - 1 loop
             i_phase_step(i) <= to_unsigned(base_phase_step * 2**i, PHASE_WIDTH);
         end loop;
 
@@ -116,7 +117,7 @@ BEGIN
         variable line_buf : line;
     begin
         write(line_buf, "Time");
-        for i in 0 to N_OSC - 1 loop
+        for i in 0 to N_CHANNELS - 1 loop
             write(line_buf, string'(","));
             write(line_buf, "signal");
             write(line_buf, i);
@@ -125,7 +126,7 @@ BEGIN
         
         loop
             write(line_buf, now);
-            for i in 0 to N_OSC - 1 loop
+            for i in 0 to N_CHANNELS - 1 loop
                 write(line_buf, string'(","));
                 write(line_buf, to_integer(o_sample(i)));
             end loop;

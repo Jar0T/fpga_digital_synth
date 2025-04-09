@@ -31,6 +31,7 @@ use IEEE.NUMERIC_STD.ALL;
 
 library work;
 use work.osc_pkg.all;
+use work.common_pkg.all;
 
 entity top is
     Port (
@@ -60,7 +61,7 @@ architecture Behavioral of top is
     
     signal s_phase_step : t_phase_step_array := (others => (others => '0'));
     signal s_sample : t_sample_array := (others => (others => '0'));
-    signal s_sel : integer range 0 to N_OSC - 1 := 0;
+    signal s_sel : integer range 0 to N_CHANNELS - 1 := 0;
 
 begin
 
