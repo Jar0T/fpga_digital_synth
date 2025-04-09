@@ -41,7 +41,7 @@ entity oscillator is
         o_sample : out t_sample_array;
         i_sample_addr : in unsigned(SAMPLE_ADDR_WIDTH - 1 downto 0);
         i_sample_we : in std_logic;
-        i_sample : in signed(15 downto 0)
+        i_sample : in signed(SAMPLE_WIDTH - 1 downto 0)
     );
 end oscillator;
 
