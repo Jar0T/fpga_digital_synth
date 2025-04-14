@@ -52,10 +52,7 @@ ARCHITECTURE behavior OF adsr_envelope_tb IS
         i_en : in std_logic;
         i_note_on : in std_logic;
         i_note_off : in std_logic;
-        i_attack_step : in unsigned(31 downto 0);
-        i_decay_step : in unsigned(31 downto 0);
-        i_sustain_level : in unsigned(31 downto 0);
-        i_release_step : in unsigned(31 downto 0);
+        i_adsr_ctrl : in t_adsr_ctrl;
         i_sample : in signed(15 downto 0);
         o_signal : out signed(15 downto 0)
         );
@@ -68,10 +65,12 @@ ARCHITECTURE behavior OF adsr_envelope_tb IS
    signal i_en : std_logic := '0';
    signal i_note_on : std_logic := '0';
    signal i_note_off : std_logic := '0';
-   signal i_attack_step : unsigned(31 downto 0) := (others => '0');
-   signal i_decay_step : unsigned(31 downto 0) := (others => '0');
-   signal i_sustain_level : unsigned(31 downto 0) := (others => '0');
-   signal i_release_step : unsigned(31 downto 0) := (others => '0');
+   signal i_adsr_ctrl : t_adsr_ctrl := (
+        attack_step => (others => '0'),
+        decay_step => (others => '0'),
+        sustain_level => (others => '0'),
+        release_step => (others => '0')
+   );
    signal i_sample : signed(15 downto 0) := (others => '0');
 
  	--Outputs
@@ -105,10 +104,7 @@ BEGIN
           i_en => i_en,
           i_note_on => i_note_on,
           i_note_off => i_note_off,
-          i_attack_step => i_attack_step,
-          i_decay_step => i_decay_step,
-          i_sustain_level => i_sustain_level,
-          i_release_step => i_release_step,
+          i_adsr_ctrl => i_adsr_ctrl,
           i_sample => i_sample,
           o_signal => o_signal
         );
@@ -140,10 +136,10 @@ BEGIN
    stim_proc: process
    begin		
       -- insert stimulus here
-      i_attack_step <= attack_step;
-      i_decay_step <= decay_step;
-      i_release_step <= release_step;
-      i_sustain_level <= sustain_level;
+      i_adsr_ctrl.attack_step <= attack_step;
+      i_adsr_ctrl.decay_step <= decay_step;
+      i_adsr_ctrl.release_step <= release_step;
+      i_adsr_ctrl.sustain_level <= sustain_level;
       wait for i_clk_period * 10;
       
       i_sample <= X"7FFF";

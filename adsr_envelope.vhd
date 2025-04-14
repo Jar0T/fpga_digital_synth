@@ -40,26 +40,23 @@ entity adsr_envelope is
         i_en : in std_logic;
         i_note_on : in std_logic;
         i_note_off : in std_logic;
-        i_attack_step : in unsigned(31 downto 0);
-        i_decay_step : in unsigned(31 downto 0);
-        i_sustain_level : in unsigned(31 downto 0);
-        i_release_step : in unsigned(31 downto 0);
-        i_sample : in signed(15 downto 0);
-        o_signal : out signed(15 downto 0)
+        i_adsr_ctrl : in t_adsr_ctrl;
+        i_sample : in signed(SAMPLE_WIDTH - 1 downto 0);
+        o_signal : out signed(SIGNAL_WIDTH - 1 downto 0)
     );
 end adsr_envelope;
 
 architecture Behavioral of adsr_envelope is
 
-    signal s_amplitude : unsigned(31 downto 0) := (others => '0');
-    signal s_attack_step : unsigned(31 downto 0) := (others => '0');
-    signal s_decay_step : unsigned(31 downto 0) := (others => '0');
-    signal s_sustain_level : unsigned(31 downto 0) := (others => '0');
-    signal s_release_step : unsigned(31 downto 0) := (others => '0');
+    signal s_amplitude : unsigned(ADSR_WIDTH - 1 downto 0) := (others => '0');
+    signal s_attack_step : unsigned(ADSR_WIDTH - 1 downto 0) := (others => '0');
+    signal s_decay_step : unsigned(ADSR_WIDTH - 1 downto 0) := (others => '0');
+    signal s_sustain_level : unsigned(ADSR_WIDTH - 1 downto 0) := (others => '0');
+    signal s_release_step : unsigned(ADSR_WIDTH - 1 downto 0) := (others => '0');
     
     signal s_adsr_state : t_adsr_state := IDLE;
     
-    signal s_mult_result : unsigned(31 downto 0) := (others => '0');
+    signal s_mult_result : signed(SAMPLE_WIDTH + SIGNAL_WIDTH downto 0) := (others => '0');
 
 begin
 
@@ -73,10 +70,10 @@ begin
                 case s_adsr_state is
                     when IDLE =>
                         s_amplitude <= (others => '0');
-                        s_attack_step <= i_attack_step;
-                        s_decay_step <= i_decay_step;
-                        s_sustain_level <= i_sustain_level;
-                        s_release_step <= i_release_step;
+                        s_attack_step <= i_adsr_ctrl.attack_step;
+                        s_decay_step <= i_adsr_ctrl.decay_step;
+                        s_sustain_level <= i_adsr_ctrl.sustain_level;
+                        s_release_step <= i_adsr_ctrl.release_step;
                         if i_note_on = '1' then
                             s_adsr_state <= ATTACK;
                         end if;
@@ -118,8 +115,8 @@ begin
                     
                 end case;
                 
-                s_mult_result <= unsigned(i_sample) * s_amplitude(31 downto 16);
-                o_signal <= signed(s_mult_result(31 downto 16));
+                s_mult_result <= i_sample * signed('0' & s_amplitude(ADSR_WIDTH - 1 downto ADSR_WIDTH - SIGNAL_WIDTH));
+                o_signal <= s_mult_result(SAMPLE_WIDTH + SIGNAL_WIDTH - 1 downto SAMPLE_WIDTH);
             end if;
         end if;
     end process;
