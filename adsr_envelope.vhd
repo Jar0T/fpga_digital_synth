@@ -41,8 +41,8 @@ entity adsr_envelope is
         i_note_on : in std_logic;
         i_note_off : in std_logic;
         i_adsr_ctrl : in t_adsr_ctrl;
-        i_sample : in signed(SAMPLE_WIDTH - 1 downto 0);
-        o_signal : out signed(SIGNAL_WIDTH - 1 downto 0)
+        o_envelope : out unsigned(ENVELOPE_WIDTH - 1 downto 0);
+        o_active : out std_logic
     );
 end adsr_envelope;
 
@@ -53,10 +53,9 @@ architecture Behavioral of adsr_envelope is
     signal s_decay_step : unsigned(ADSR_WIDTH - 1 downto 0) := (others => '0');
     signal s_sustain_level : unsigned(ADSR_WIDTH - 1 downto 0) := (others => '0');
     signal s_release_step : unsigned(ADSR_WIDTH - 1 downto 0) := (others => '0');
+    signal s_active : std_logic := '0';
     
     signal s_adsr_state : t_adsr_state := IDLE;
-    
-    signal s_mult_result : signed(SAMPLE_WIDTH + SIGNAL_WIDTH downto 0) := (others => '0');
 
 begin
 
@@ -66,9 +65,11 @@ begin
             if i_reset = '1' then
                 s_adsr_state <= IDLE;
                 s_amplitude <= (others => '0');
+                s_active <= '0';
             else
                 case s_adsr_state is
                     when IDLE =>
+                        s_active <= '0';
                         s_amplitude <= (others => '0');
                         s_attack_step <= i_adsr_ctrl.attack_step;
                         s_decay_step <= i_adsr_ctrl.decay_step;
@@ -79,6 +80,7 @@ begin
                         end if;
                     
                     when ATTACK =>
+                        s_active <= '1';
                         if i_en = '1' then
                             if s_amplitude < MAX_AMPLITUDE - s_attack_step then
                                 s_amplitude <= s_amplitude + s_attack_step;
@@ -89,6 +91,7 @@ begin
                         end if;
                     
                     when DECAY =>
+                        s_active <= '1';
                         if i_en = '1' then
                             if s_amplitude > s_sustain_level + s_decay_step then
                                 s_amplitude <= s_amplitude - s_decay_step;
@@ -99,11 +102,13 @@ begin
                         end if;
                     
                     when SUSTAIN =>
+                        s_active <= '1';
                         if i_note_off = '1' then
                             s_adsr_state <= RELEASE;
                         end if;
                     
                     when RELEASE =>
+                        s_active <= '1';
                         if i_en = '1' then
                             if s_amplitude <= s_release_step then
                                 s_amplitude <= (others => '0');
@@ -115,8 +120,8 @@ begin
                     
                 end case;
                 
-                s_mult_result <= i_sample * signed('0' & s_amplitude(ADSR_WIDTH - 1 downto ADSR_WIDTH - SIGNAL_WIDTH));
-                o_signal <= s_mult_result(SAMPLE_WIDTH + SIGNAL_WIDTH - 1 downto SAMPLE_WIDTH);
+                o_active <= s_active;
+                o_envelope <= s_amplitude(ADSR_WIDTH - 1 downto ADSR_WIDTH - ENVELOPE_WIDTH);
             end if;
         end if;
     end process;

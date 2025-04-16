@@ -30,18 +30,14 @@ USE ieee.std_logic_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 use ieee.std_logic_textio.all;
 use std.textio.all;
- 
--- Uncomment the following library declaration if using
--- arithmetic functions with Signed or Unsigned values
---USE ieee.numeric_std.ALL;
 
 library work;
 use work.adsr_envelope_pkg.all;
  
-ENTITY adsr_envelope_tb IS
-END adsr_envelope_tb;
+entity adsr_envelope_tb is
+end adsr_envelope_tb;
  
-ARCHITECTURE behavior OF adsr_envelope_tb IS 
+architecture behavior of adsr_envelope_tb is 
  
     -- Component Declaration for the Unit Under Test (UUT)
  
@@ -53,71 +49,71 @@ ARCHITECTURE behavior OF adsr_envelope_tb IS
         i_note_on : in std_logic;
         i_note_off : in std_logic;
         i_adsr_ctrl : in t_adsr_ctrl;
-        i_sample : in signed(15 downto 0);
-        o_signal : out signed(15 downto 0)
+        o_envelope : out unsigned(ENVELOPE_WIDTH - 1 downto 0);
+        o_active : out std_logic
         );
     end component;
     
 
-   --Inputs
-   signal i_clk : std_logic := '0';
-   signal i_reset : std_logic := '0';
-   signal i_en : std_logic := '0';
-   signal i_note_on : std_logic := '0';
-   signal i_note_off : std_logic := '0';
-   signal i_adsr_ctrl : t_adsr_ctrl := (
+    --Inputs
+    signal i_clk : std_logic := '0';
+    signal i_reset : std_logic := '0';
+    signal i_en : std_logic := '0';
+    signal i_note_on : std_logic := '0';
+    signal i_note_off : std_logic := '0';
+    signal i_adsr_ctrl : t_adsr_ctrl := (
         attack_step => (others => '0'),
         decay_step => (others => '0'),
         sustain_level => (others => '0'),
         release_step => (others => '0')
-   );
-   signal i_sample : signed(15 downto 0) := (others => '0');
+    );
 
  	--Outputs
-   signal o_signal : signed(15 downto 0);
+    signal o_envelope : unsigned(ENVELOPE_WIDTH - 1 downto 0);
+    signal o_active : std_logic;
 
-   -- Clock period definitions
-   constant i_clk_period : time := 10 ns;
+    -- Clock period definitions
+    constant i_clk_period : time := 10 ns;
    
-   constant i_clk_freq : integer := 100_000_000;
-   constant sample_freq : integer := 48_000;
-   constant sample_period : time := 1 sec / sample_freq;
+    constant i_clk_freq : integer := 100_000_000;
+    constant sample_freq : integer := 48_000;
+    constant sample_period : time := 1 sec / sample_freq;
    
-   signal clk_en_cnt : integer := 0;
-   
-   constant attack_time : time := 3 ms;
-   constant decay_time : time := 4 ms;
-   constant sustain_level : unsigned(31 downto 0) := X"3333_3333";
-   constant release_time : time := 5 ms;
-   constant sustain_time : time := 6 ms;
-   
-   constant attack_step : unsigned(31 downto 0) := MAX_AMPLITUDE / to_unsigned(integer(attack_time / sample_period), 32);
-   constant decay_step : unsigned(31 downto 0) := (MAX_AMPLITUDE - sustain_level) / to_unsigned(integer(decay_time / sample_period), 32);
-   constant release_step : unsigned(31 downto 0) := sustain_level / to_unsigned(integer(release_time / sample_period), 32);
+    signal clk_en_cnt : integer := 0;
+
+    constant attack_time : time := 3 ms;
+    constant decay_time : time := 4 ms;
+    constant sustain_level : unsigned(31 downto 0) := X"3333_3333";
+    constant release_time : time := 5 ms;
+    constant sustain_time : time := 6 ms;
+
+    constant attack_step : unsigned(31 downto 0) := MAX_AMPLITUDE / to_unsigned(integer(attack_time / sample_period), 32);
+    constant decay_step : unsigned(31 downto 0) := (MAX_AMPLITUDE - sustain_level) / to_unsigned(integer(decay_time / sample_period), 32);
+    constant release_step : unsigned(31 downto 0) := sustain_level / to_unsigned(integer(release_time / sample_period), 32);
  
-BEGIN
+begin
  
 	-- Instantiate the Unit Under Test (UUT)
-   uut: adsr_envelope PORT MAP (
-          i_clk => i_clk,
-          i_reset => i_reset,
-          i_en => i_en,
-          i_note_on => i_note_on,
-          i_note_off => i_note_off,
-          i_adsr_ctrl => i_adsr_ctrl,
-          i_sample => i_sample,
-          o_signal => o_signal
+    uut: adsr_envelope Port map (
+        i_clk => i_clk,
+        i_reset => i_reset,
+        i_en => i_en,
+        i_note_on => i_note_on,
+        i_note_off => i_note_off,
+        i_adsr_ctrl => i_adsr_ctrl,
+        o_envelope => o_envelope,
+        o_active => o_active
         );
 
-   -- Clock process definitions
-   i_clk_process :process
-   begin
-		i_clk <= '0';
-		wait for i_clk_period/2;
-		i_clk <= '1';
-		wait for i_clk_period/2;
-   end process;
-   
+    -- Clock process definitions
+    i_clk_process :process
+    begin
+        i_clk <= '0';
+        wait for i_clk_period/2;
+        i_clk <= '1';
+        wait for i_clk_period/2;
+    end process;
+
     process(i_clk)
     begin
         if rising_edge(i_clk) then
@@ -130,47 +126,46 @@ BEGIN
             end if;
         end if;
     end process;
- 
 
-   -- Stimulus process
-   stim_proc: process
-   begin		
-      -- insert stimulus here
-      i_adsr_ctrl.attack_step <= attack_step;
-      i_adsr_ctrl.decay_step <= decay_step;
-      i_adsr_ctrl.release_step <= release_step;
-      i_adsr_ctrl.sustain_level <= sustain_level;
-      wait for i_clk_period * 10;
-      
-      i_sample <= X"7FFF";
-      i_note_on <= '1';
-      wait for i_clk_period;
-      i_note_on <= '0';
-      wait for attack_time;
-      wait for decay_time;
-      wait for sustain_time;
-      i_note_off <= '1';
-      wait for i_clk_period;
-      i_note_off <= '0';
 
-      wait;
-   end process;
+    -- Stimulus process
+    stim_proc: process
+    begin		
+        -- insert stimulus here
+        i_adsr_ctrl.attack_step <= attack_step;
+        i_adsr_ctrl.decay_step <= decay_step;
+        i_adsr_ctrl.release_step <= release_step;
+        i_adsr_ctrl.sustain_level <= sustain_level;
+        wait for i_clk_period * 10;
+
+        i_note_on <= '1';
+        wait for i_clk_period;
+        i_note_on <= '0';
+        wait for attack_time;
+        wait for decay_time;
+        wait for sustain_time;
+        i_note_off <= '1';
+        wait for i_clk_period;
+        i_note_off <= '0';
+
+        wait;
+    end process;
    
-   -- Process for logging output samples to csv file
+    -- Process for logging output samples to csv file
     process
         file out_file : text open write_mode is "adsr_dump.csv";
         variable line_buf : line;
     begin
-        write(line_buf, "Time,adsr0");
+        write(line_buf, "Time,env");
         writeline(out_file, line_buf);
         
         loop
             write(line_buf, now);
-            write(line_buf, string'(","));
-            write(line_buf, to_integer(o_signal));
+            write(line_buf, ",");
+            write(line_buf, to_integer(o_envelope));
             writeline(out_file, line_buf);
             wait until i_en = '1';
         end loop;
     end process;
 
-END;
+end;

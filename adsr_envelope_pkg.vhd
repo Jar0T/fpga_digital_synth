@@ -18,6 +18,7 @@ package adsr_envelope_pkg is
 
     constant ADSR_WIDTH : integer := 32;
     constant SIGNAL_WIDTH : integer := 16;
+	 constant ENVELOPE_WIDTH : integer := 16;
     constant MAX_AMPLITUDE : unsigned(ADSR_WIDTH - 1 downto 0) := (others => '1');
     
     type t_adsr_ctrl is record
