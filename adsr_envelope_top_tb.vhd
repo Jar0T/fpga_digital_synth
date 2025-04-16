@@ -50,8 +50,7 @@ architecture behavior of adsr_envelope_top_tb is
         i_note_on : in std_logic_vector(N_CHANNELS - 1 downto 0);
         i_note_off : in std_logic_vector(N_CHANNELS - 1 downto 0);
         i_adsr_ctrl : in t_adsr_ctrl_array;
-        i_sample : in t_sample_array;
-        o_signal : out t_signal_array
+        o_envelope : out t_envelope_array
         );
     end component;
     
@@ -67,10 +66,9 @@ architecture behavior of adsr_envelope_top_tb is
         sustain_level => (others => '0'),
         release_step => (others => '0')
     ));
-    signal i_sample : t_sample_array := (others => (others => '0'));
 
  	--Outputs
-    signal o_signal : t_signal_array;
+    signal o_envelope : t_envelope_array;
 
     -- Clock period definitions
     constant i_clk_period : time := 10 ns;
@@ -86,14 +84,6 @@ architecture behavior of adsr_envelope_top_tb is
     constant attack_step : unsigned(31 downto 0) := MAX_AMPLITUDE / to_unsigned(integer(attack_time / sample_period), 32);
     constant decay_step : unsigned(31 downto 0) := (MAX_AMPLITUDE - sustain_level) / to_unsigned(integer(decay_time / sample_period), 32);
     constant release_step : unsigned(31 downto 0) := sustain_level / to_unsigned(integer(release_time / sample_period), 32);
-    
-    
-    constant test0 : signed(15 downto 0) := X"8000";
-    constant test1 : unsigned(15 downto 0) := X"FF00";
-    constant mult0 : signed(31 downto 0) := test0 * signed(test1);
-    constant mult1 : signed(32 downto 0) := test0 * signed('0' & test1);
-    constant res00 : signed(15 downto 0) := mult0(31 downto 16);
-    constant res10 : signed(15 downto 0) := mult1(31 downto 16);
 
 begin
  
@@ -104,8 +94,7 @@ begin
         i_note_on => i_note_on,
         i_note_off => i_note_off,
         i_adsr_ctrl => i_adsr_ctrl,
-        i_sample => i_sample,
-        o_signal => o_signal
+        o_envelope => o_envelope
         );
 
     -- Clock process definitions
@@ -122,8 +111,6 @@ begin
     stim_proc: process
     begin		
         -- insert stimulus here
-        i_sample(0) <= X"8000";
-        i_sample(1) <= X"7FFF";
         for i in 0 to N_CHANNELS - 1 loop
             i_adsr_ctrl(i).attack_step <= attack_step;
             i_adsr_ctrl(i).decay_step <= decay_step;
@@ -158,7 +145,7 @@ begin
         write(line_buf, "Time");
         for i in 0 to N_CHANNELS - 1 loop
             write(line_buf, ",");
-            write(line_buf, "adsr");
+            write(line_buf, "env");
             write(line_buf, i);
         end loop;
         writeline(out_file, line_buf);
@@ -167,7 +154,7 @@ begin
             write(line_buf, now);
             for i in 0 to N_CHANNELS - 1 loop
                 write(line_buf, ",");
-                write(line_buf, to_integer(o_signal(i)));
+                write(line_buf, to_integer(o_envelope(i).envelope));
             end loop;
             writeline(out_file, line_buf);
             wait for sample_period;

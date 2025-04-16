@@ -41,8 +41,7 @@ entity adsr_envelope_top is
         i_note_on : in std_logic_vector(N_CHANNELS - 1 downto 0);
         i_note_off : in std_logic_vector(N_CHANNELS - 1 downto 0);
         i_adsr_ctrl : in t_adsr_ctrl_array;
-        i_sample : in t_sample_array;
-        o_signal : out t_signal_array
+        o_envelope : out t_envelope_array
     );
 end adsr_envelope_top;
 
@@ -56,8 +55,7 @@ architecture Behavioral of adsr_envelope_top is
         i_note_on : in std_logic;
         i_note_off : in std_logic;
         i_adsr_ctrl : in t_adsr_ctrl;
-        i_sample : in signed(SAMPLE_WIDTH - 1 downto 0);
-        o_signal : out signed(SIGNAL_WIDTH - 1 downto 0)
+        o_envelope : out t_adsr_envelope
     );
     end component;
     
@@ -74,8 +72,7 @@ begin
         i_note_on => i_note_on(i),
         i_note_off => i_note_off(i),
         i_adsr_ctrl => i_adsr_ctrl(i),
-        i_sample => i_sample(i),
-        o_signal => o_signal(i)
+        o_envelope => o_envelope(i)
     );
     end generate g_generate_envelopes;
     
