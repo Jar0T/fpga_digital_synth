@@ -41,8 +41,7 @@ entity adsr_envelope is
         i_note_on : in std_logic;
         i_note_off : in std_logic;
         i_adsr_ctrl : in t_adsr_ctrl;
-        o_envelope : out unsigned(ENVELOPE_WIDTH - 1 downto 0);
-        o_active : out std_logic
+        o_envelope : out t_adsr_envelope
     );
 end adsr_envelope;
 
@@ -120,8 +119,8 @@ begin
                     
                 end case;
                 
-                o_active <= s_active;
-                o_envelope <= s_amplitude(ADSR_WIDTH - 1 downto ADSR_WIDTH - ENVELOPE_WIDTH);
+                o_envelope.active <= s_active;
+                o_envelope.envelope <= s_amplitude(ADSR_WIDTH - 1 downto ADSR_WIDTH - ENVELOPE_WIDTH);
             end if;
         end if;
     end process;

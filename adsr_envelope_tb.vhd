@@ -49,8 +49,7 @@ architecture behavior of adsr_envelope_tb is
         i_note_on : in std_logic;
         i_note_off : in std_logic;
         i_adsr_ctrl : in t_adsr_ctrl;
-        o_envelope : out unsigned(ENVELOPE_WIDTH - 1 downto 0);
-        o_active : out std_logic
+        o_envelope : out t_adsr_envelope
         );
     end component;
     
@@ -69,8 +68,7 @@ architecture behavior of adsr_envelope_tb is
     );
 
  	--Outputs
-    signal o_envelope : unsigned(ENVELOPE_WIDTH - 1 downto 0);
-    signal o_active : std_logic;
+    signal o_envelope : t_adsr_envelope;
 
     -- Clock period definitions
     constant i_clk_period : time := 10 ns;
@@ -101,8 +99,7 @@ begin
         i_note_on => i_note_on,
         i_note_off => i_note_off,
         i_adsr_ctrl => i_adsr_ctrl,
-        o_envelope => o_envelope,
-        o_active => o_active
+        o_envelope => o_envelope
         );
 
     -- Clock process definitions
@@ -162,7 +159,7 @@ begin
         loop
             write(line_buf, now);
             write(line_buf, ",");
-            write(line_buf, to_integer(o_envelope));
+            write(line_buf, to_integer(o_envelope.envelope));
             writeline(out_file, line_buf);
             wait until i_en = '1';
         end loop;
