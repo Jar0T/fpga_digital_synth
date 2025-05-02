@@ -33,6 +33,7 @@ library work;
 use work.osc_pkg.all;
 use work.common_pkg.all;
 use work.adsr_envelope_pkg.all;
+use work.adsr_multiplier_pkg.all;
 
 entity top is
     Port (
@@ -40,9 +41,8 @@ entity top is
         i_reset : in std_logic;
         
         i_phase_step : in unsigned(PHASE_WIDTH - 1 downto 0);
-        o_sample: out signed(SAMPLE_WIDTH - 1 downto 0);
         
-        o_envelope : out t_adsr_envelope
+        o_signal : out t_signal
     );
 end top;
 
@@ -71,6 +71,16 @@ architecture Behavioral of top is
         );
     end component;
     
+    component adsr_multiplier
+    Port (
+        i_clk : in std_logic;
+        i_reset : in std_logic;
+        i_sample : in t_sample_array;
+        i_envelope : in t_envelope_array;
+        o_signal : out t_signal_array
+        );
+    end component;
+    
     signal s_phase_step : t_phase_step_array := (others => (others => '0'));
     signal s_sample : t_sample_array := (others => (others => '0'));
     signal s_note_on : std_logic_vector(N_CHANNELS - 1 downto 0) := (others => '0');
@@ -83,6 +93,10 @@ architecture Behavioral of top is
     ));
     signal s_envelope : t_envelope_array := (others => (
         envelope => (others => '0'),
+        active => '0'
+    ));
+    signal s_scaled_signal : t_signal_array := (others => (
+        value => (others => '0'),
         active => '0'
     ));
     signal s_sel : integer range 0 to N_CHANNELS - 1 := 0;
@@ -108,6 +122,14 @@ begin
         o_envelope => s_envelope
     );
     
+    Inst_adsr_multiplier: adsr_multiplier Port map(
+        i_clk => i_clk,
+        i_reset => i_reset,
+        i_sample => s_sample,
+        i_envelope => s_envelope,
+        o_signal => s_scaled_signal
+        );
+    
     process(i_clk)
     begin
         if rising_edge(i_clk) then
@@ -119,8 +141,6 @@ begin
             
             s_phase_step(s_sel) <= i_phase_step;
             
-            o_sample <= s_sample(s_sel);
-            
             s_note_on(s_sel) <= not s_note_on(s_sel);
             s_note_off(s_sel) <= not s_note_off(s_sel);
             
@@ -129,7 +149,7 @@ begin
             s_adsr_ctrl(s_sel).sustain_level <= s_adsr_ctrl(s_sel).sustain_level + 1;
             s_adsr_ctrl(s_sel).release_step <= s_adsr_ctrl(s_sel).release_step + 1;
             
-            o_envelope <= s_envelope(s_sel);
+            o_signal <= s_scaled_signal(s_sel);
         end if;
     end process;
 

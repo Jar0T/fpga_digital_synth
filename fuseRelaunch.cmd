@@ -1,1 +1,1 @@
--intstyle "ise" -incremental -lib "secureip" -o "/home/jarek/sources/vhdl/digital_synth/adsr_envelope_top_tb_isim_beh.exe" -prj "/home/jarek/sources/vhdl/digital_synth/adsr_envelope_top_tb_beh.prj" "work.adsr_envelope_top_tb" 
+-intstyle "ise" -incremental -lib "secureip" -o "/home/jarek/sources/vhdl/digital_synth/adsr_multiplier_tb_isim_beh.exe" -prj "/home/jarek/sources/vhdl/digital_synth/adsr_multiplier_tb_beh.prj" "work.adsr_multiplier_tb" 
