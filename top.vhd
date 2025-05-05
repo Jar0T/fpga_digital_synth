@@ -40,6 +40,11 @@ entity top is
         i_clk : in std_logic;
         i_reset : in std_logic;
         
+        i_ch_sel : in integer range 0 to N_CHANNELS - 1;
+        i_en : in std_logic;
+        
+        i_note_on : in std_logic;
+        i_note_off : in std_logic;
         i_phase_step : in unsigned(PHASE_WIDTH - 1 downto 0);
         
         o_signal : out signed(SIGNAL_WIDTH - 1 downto 0)
@@ -108,7 +113,6 @@ architecture Behavioral of top is
         value => (others => '0'),
         active => '0'
     ));
-    signal s_sel : integer range 0 to N_CHANNELS - 1 := 0;
 
 begin
 
@@ -149,21 +153,16 @@ begin
     process(i_clk)
     begin
         if rising_edge(i_clk) then
-            if s_sel = N_CHANNELS - 1 then
-                s_sel <= 0;
-            else
-                s_sel <= s_sel + 1;
+            if i_en = '1' then
+                s_phase_step(i_ch_sel) <= i_phase_step;
+                s_note_on(i_ch_sel) <= i_note_on;
+                s_note_off(i_ch_sel) <= i_note_off;
             end if;
             
-            s_phase_step(s_sel) <= i_phase_step;
-            
-            s_note_on(s_sel) <= not s_note_on(s_sel);
-            s_note_off(s_sel) <= not s_note_off(s_sel);
-            
-            s_adsr_ctrl(s_sel).attack_step <=  s_adsr_ctrl(s_sel).attack_step + 1;
-            s_adsr_ctrl(s_sel).decay_step <= s_adsr_ctrl(s_sel).decay_step + 1;
-            s_adsr_ctrl(s_sel).sustain_level <= s_adsr_ctrl(s_sel).sustain_level + 1;
-            s_adsr_ctrl(s_sel).release_step <= s_adsr_ctrl(s_sel).release_step + 1;
+            s_adsr_ctrl(i_ch_sel).attack_step <= (others => '1');
+            s_adsr_ctrl(i_ch_sel).decay_step <= (others => '1');
+            s_adsr_ctrl(i_ch_sel).sustain_level <= (others => '1');
+            s_adsr_ctrl(i_ch_sel).release_step <= (others => '1');
         end if;
     end process;
 

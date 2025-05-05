@@ -1,1 +1,1 @@
--intstyle "ise" -incremental -lib "secureip" -o "/home/jarek/sources/vhdl/digital_synth/mixer_tb_isim_beh.exe" -prj "/home/jarek/sources/vhdl/digital_synth/mixer_tb_beh.prj" "work.mixer_tb" 
+-intstyle "ise" -incremental -lib "secureip" -o "/home/jarek/sources/vhdl/digital_synth/top_tb_isim_beh.exe" -prj "/home/jarek/sources/vhdl/digital_synth/top_tb_beh.prj" "work.top_tb" 
