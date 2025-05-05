@@ -42,7 +42,7 @@ end mixer;
 architecture Behavioral of mixer is
 
     signal s_channel_select : integer range 0 to N_CHANNELS - 1 := N_CHANNELS - 1;
-    signal s_mixed_channels : signed(SIGNAL_WIDTH - 1 downto 0) := (others => '0');
+    signal s_mixed_channels : signed(SIGNAL_WIDTH downto 0) := (others => '0');
     signal s_active : std_logic := '0';
 
 begin
@@ -56,19 +56,19 @@ begin
             else
                 if s_channel_select = N_CHANNELS - 1 then
                     if i_channels(s_channel_select).active = '1' then
-                        s_mixed_channels <= i_channels(s_channel_select).value;
+                        s_mixed_channels <= resize(i_channels(s_channel_select).value, s_mixed_channels'length);
                         s_active <= '1';
                     else
                         s_mixed_channels <= (others => '0');
                         s_active <= '0';
                     end if;
-                    o_mixed_channels <= s_mixed_channels;
+                    o_mixed_channels <= s_mixed_channels(SIGNAL_WIDTH - 1 downto 0);
                 else
                     if i_channels(s_channel_select).active = '1' then
                         if s_active = '1' then
-                            s_mixed_channels <= shift_right(s_mixed_channels + i_channels(s_channel_select).value, 1);
+                            s_mixed_channels <= shift_right(s_mixed_channels + resize(i_channels(s_channel_select).value, s_mixed_channels'length), 1);
                         else
-                            s_mixed_channels <= i_channels(s_channel_select).value;
+                            s_mixed_channels <= resize(i_channels(s_channel_select).value, s_mixed_channels'length);
                             s_active <= '1';
                         end if;
                     else
