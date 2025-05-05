@@ -82,7 +82,7 @@ begin
                 s_sample(s_sel_del_2) <= s_lut_data;
                 s_sel_del_1 <= s_sel;
                 s_sel_del_2 <= s_sel_del_1;
-                if s_sel = 7 then
+                if s_sel = N_CHANNELS - 1 then
                     s_sel <= 0;
                 else
                     s_sel <= s_sel + 1;
