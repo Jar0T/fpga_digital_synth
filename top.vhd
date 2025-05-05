@@ -42,7 +42,7 @@ entity top is
         
         i_phase_step : in unsigned(PHASE_WIDTH - 1 downto 0);
         
-        o_signal : out t_signal
+        o_signal : out signed(SIGNAL_WIDTH - 1 downto 0)
     );
 end top;
 
@@ -78,6 +78,15 @@ architecture Behavioral of top is
         i_sample : in t_sample_array;
         i_envelope : in t_envelope_array;
         o_signal : out t_signal_array
+        );
+    end component;
+    
+    component mixer
+    Port (
+        i_clk : in std_logic;
+        i_reset : in std_logic;
+        i_channels : in t_signal_array;
+        o_mixed_channels : out signed(SIGNAL_WIDTH - 1 downto 0)
         );
     end component;
     
@@ -130,6 +139,13 @@ begin
         o_signal => s_scaled_signal
         );
     
+    Inst_mixer: mixer Port map(
+        i_clk => i_clk,
+        i_reset => i_reset,
+        i_channels => s_scaled_signal,
+        o_mixed_channels => o_signal
+        );
+    
     process(i_clk)
     begin
         if rising_edge(i_clk) then
@@ -148,8 +164,6 @@ begin
             s_adsr_ctrl(s_sel).decay_step <= s_adsr_ctrl(s_sel).decay_step + 1;
             s_adsr_ctrl(s_sel).sustain_level <= s_adsr_ctrl(s_sel).sustain_level + 1;
             s_adsr_ctrl(s_sel).release_step <= s_adsr_ctrl(s_sel).release_step + 1;
-            
-            o_signal <= s_scaled_signal(s_sel);
         end if;
     end process;
 
