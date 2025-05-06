@@ -35,7 +35,7 @@ entity mixer is
         i_clk : in std_logic;
         i_reset : in std_logic;
         i_channels : in t_signal_array;
-        o_mixed_channels : out signed(SIGNAL_WIDTH - 1 downto 0)
+        o_mixed_channels : out signed(SIGNAL_WIDTH - 1 downto 0) := (others => '0')
     );
 end mixer;
 
