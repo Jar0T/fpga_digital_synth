@@ -47,7 +47,7 @@ entity top is
         i_note_off : in std_logic;
         i_phase_step : in unsigned(PHASE_WIDTH - 1 downto 0);
         
-        o_signal : out signed(SIGNAL_WIDTH - 1 downto 0)
+        o_result : out std_logic
     );
 end top;
 
@@ -95,6 +95,15 @@ architecture Behavioral of top is
         );
     end component;
     
+    component delta_sigma_dac
+    Port (
+        i_clk : in std_logic;
+        i_reset : in std_logic;
+        i_sample : in signed(SIGNAL_WIDTH - 1 downto 0);
+        o_result : out std_logic
+        );
+    end component;
+    
     signal s_phase_step : t_phase_step_array := (others => (others => '0'));
     signal s_sample : t_sample_array := (others => (others => '0'));
     signal s_note_on : std_logic_vector(N_CHANNELS - 1 downto 0) := (others => '0');
@@ -113,6 +122,7 @@ architecture Behavioral of top is
         value => (others => '0'),
         active => '0'
     ));
+    signal s_mixed_signal : signed(SIGNAL_WIDTH - 1 downto 0) := (others => '0');
 
 begin
 
@@ -147,7 +157,14 @@ begin
         i_clk => i_clk,
         i_reset => i_reset,
         i_channels => s_scaled_signal,
-        o_mixed_channels => o_signal
+        o_mixed_channels => s_mixed_signal
+        );
+    
+    Inst_delta_sigma_dac: delta_sigma_dac Port map(
+        i_clk => i_clk,
+        i_reset => i_reset,
+        i_sample => s_mixed_signal,
+        o_result => o_result
         );
     
     process(i_clk)

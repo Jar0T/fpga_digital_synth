@@ -53,7 +53,7 @@ architecture behavior of top_tb is
         i_note_on : in std_logic;
         i_note_off : in std_logic;
         i_phase_step : in unsigned(PHASE_WIDTH - 1 downto 0);
-        o_signal : out signed(SIGNAL_WIDTH - 1 downto 0)
+        o_result : out std_logic
         );
     end component;
 
@@ -67,7 +67,7 @@ architecture behavior of top_tb is
     signal i_phase_step : unsigned(PHASE_WIDTH - 1 downto 0) := (others => '0');
 
     --Outputs
-    signal o_signal : signed(SIGNAL_WIDTH - 1 downto 0);
+    signal o_result : std_logic;
 
     -- Clock period definitions
     constant i_clk_period : time := 10 ns;
@@ -87,7 +87,7 @@ begin
         i_note_on => i_note_on,
         i_note_off => i_note_off,
         i_phase_step => i_phase_step,
-        o_signal => o_signal
+        o_result => o_result
         );
 
     -- Clock process definitions
@@ -103,7 +103,7 @@ begin
         -- insert stimulus here
         i_note_on <= '1';
         i_en <= '1';
-        for i in 1 to N_CHANNELS loop
+        for i in 1 to 1 loop
             i_phase_step <= to_unsigned(base_phase_step * i, PHASE_WIDTH);
             i_ch_sel <= i - 1;
             wait for i_clk_period;
@@ -115,20 +115,20 @@ begin
     end process;
 
     -- Process for logging output samples to csv file
-    process
-        file out_file : text open write_mode is "final_signal.csv";
-        variable line_buf : line;
-    begin
-        write(line_buf, "Time,signal");
-        writeline(out_file, line_buf);
-        
-        loop
-            write(line_buf, now);
-            write(line_buf, ",");
-            write(line_buf, to_integer(o_signal));
-            writeline(out_file, line_buf);
-            wait on o_signal;
-        end loop;
-    end process;
+--    process
+--        file out_file : text open write_mode is "final_signal.csv";
+--        variable line_buf : line;
+--    begin
+--        write(line_buf, "Time,signal");
+--        writeline(out_file, line_buf);
+--        
+--        loop
+--            write(line_buf, now);
+--            write(line_buf, ",");
+--            write(line_buf, to_integer(o_signal));
+--            writeline(out_file, line_buf);
+--            wait on o_signal;
+--        end loop;
+--    end process;
 
 end;
