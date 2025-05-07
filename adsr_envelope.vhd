@@ -39,7 +39,6 @@ entity adsr_envelope is
         i_reset : in std_logic;
         i_en : in std_logic;
         i_note_on : in std_logic;
-        i_note_off : in std_logic;
         i_adsr_ctrl : in t_adsr_ctrl;
         o_envelope : out t_adsr_envelope
     );
@@ -48,10 +47,6 @@ end adsr_envelope;
 architecture Behavioral of adsr_envelope is
 
     signal s_amplitude : unsigned(ADSR_WIDTH - 1 downto 0) := (others => '0');
-    signal s_attack_step : unsigned(ADSR_WIDTH - 1 downto 0) := (others => '0');
-    signal s_decay_step : unsigned(ADSR_WIDTH - 1 downto 0) := (others => '0');
-    signal s_sustain_level : unsigned(ADSR_WIDTH - 1 downto 0) := (others => '0');
-    signal s_release_step : unsigned(ADSR_WIDTH - 1 downto 0) := (others => '0');
     signal s_active : std_logic := '0';
     
     signal s_adsr_state : t_adsr_state := IDLE;
@@ -66,58 +61,56 @@ begin
                 s_amplitude <= (others => '0');
                 s_active <= '0';
             else
-                case s_adsr_state is
-                    when IDLE =>
-                        s_active <= '0';
-                        s_amplitude <= (others => '0');
-                        s_attack_step <= i_adsr_ctrl.attack_step;
-                        s_decay_step <= i_adsr_ctrl.decay_step;
-                        s_sustain_level <= i_adsr_ctrl.sustain_level;
-                        s_release_step <= i_adsr_ctrl.release_step;
-                        if i_note_on = '1' then
-                            s_adsr_state <= ATTACK;
-                        end if;
-                    
-                    when ATTACK =>
-                        s_active <= '1';
-                        if i_en = '1' then
-                            if s_amplitude < MAX_AMPLITUDE - s_attack_step then
-                                s_amplitude <= s_amplitude + s_attack_step;
+                if i_en = '1' then
+                    case s_adsr_state is
+                        when IDLE =>
+                            s_active <= '0';
+                            s_amplitude <= (others => '0');
+                            if i_note_on = '1' then
+                                s_adsr_state <= ATTACK;
+                            end if;
+                        
+                        when ATTACK =>
+                            s_active <= '1';
+                            if i_note_on = '0' then
+                                s_adsr_state <= RELEASE;
+                            elsif s_amplitude < MAX_AMPLITUDE - i_adsr_ctrl.attack_step then
+                                s_amplitude <= s_amplitude + i_adsr_ctrl.attack_step;
                             else
                                 s_amplitude <= MAX_AMPLITUDE;
                                 s_adsr_state <= DECAY;
                             end if;
-                        end if;
-                    
-                    when DECAY =>
-                        s_active <= '1';
-                        if i_en = '1' then
-                            if s_amplitude > s_sustain_level + s_decay_step then
-                                s_amplitude <= s_amplitude - s_decay_step;
+                        
+                        when DECAY =>
+                            s_active <= '1';
+                            if i_note_on = '0' then
+                                s_adsr_state <= RELEASE;
+                            elsif s_amplitude > i_adsr_ctrl.sustain_level + i_adsr_ctrl.decay_step then
+                                s_amplitude <= s_amplitude - i_adsr_ctrl.decay_step;
                             else
-                                s_amplitude <= s_sustain_level;
+                                s_amplitude <= i_adsr_ctrl.sustain_level;
                                 s_adsr_state <= SUSTAIN;
                             end if;
-                        end if;
-                    
-                    when SUSTAIN =>
-                        s_active <= '1';
-                        if i_note_off = '1' then
-                            s_adsr_state <= RELEASE;
-                        end if;
-                    
-                    when RELEASE =>
-                        s_active <= '1';
-                        if i_en = '1' then
-                            if s_amplitude <= s_release_step then
+                        
+                        when SUSTAIN =>
+                            s_active <= '1';
+                            if i_note_on = '0' then
+                                s_adsr_state <= RELEASE;
+                            end if;
+                        
+                        when RELEASE =>
+                            s_active <= '1';
+                            if i_note_on = '1' then
+                                s_adsr_state <= ATTACK;
+                            elsif s_amplitude <= i_adsr_ctrl.release_step then
                                 s_amplitude <= (others => '0');
                                 s_adsr_state <= IDLE;
                             else
-                                s_amplitude <= s_amplitude - s_release_step;
+                                s_amplitude <= s_amplitude - i_adsr_ctrl.release_step;
                             end if;
-                        end if;
-                    
-                end case;
+                        
+                    end case;
+                end if;
                 
                 o_envelope.active <= s_active;
                 o_envelope.envelope <= s_amplitude(ADSR_WIDTH - 1 downto ADSR_WIDTH - ENVELOPE_WIDTH);

@@ -39,7 +39,6 @@ entity adsr_envelope_top is
         i_clk : in  std_logic;
         i_reset : in  std_logic;
         i_note_on : in std_logic_vector(N_CHANNELS - 1 downto 0);
-        i_note_off : in std_logic_vector(N_CHANNELS - 1 downto 0);
         i_adsr_ctrl : in t_adsr_ctrl_array;
         o_envelope : out t_envelope_array
     );
@@ -53,7 +52,6 @@ architecture Behavioral of adsr_envelope_top is
         i_reset : in std_logic;
         i_en : in std_logic;
         i_note_on : in std_logic;
-        i_note_off : in std_logic;
         i_adsr_ctrl : in t_adsr_ctrl;
         o_envelope : out t_adsr_envelope
     );
@@ -70,7 +68,6 @@ begin
         i_reset => i_reset,
         i_en => s_en,
         i_note_on => i_note_on(i),
-        i_note_off => i_note_off(i),
         i_adsr_ctrl => i_adsr_ctrl(i),
         o_envelope => o_envelope(i)
     );

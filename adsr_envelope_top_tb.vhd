@@ -48,7 +48,6 @@ architecture behavior of adsr_envelope_top_tb is
         i_clk : in std_logic;
         i_reset : in std_logic;
         i_note_on : in std_logic_vector(N_CHANNELS - 1 downto 0);
-        i_note_off : in std_logic_vector(N_CHANNELS - 1 downto 0);
         i_adsr_ctrl : in t_adsr_ctrl_array;
         o_envelope : out t_envelope_array
         );
@@ -59,7 +58,6 @@ architecture behavior of adsr_envelope_top_tb is
     signal i_clk : std_logic := '0';
     signal i_reset : std_logic := '0';
     signal i_note_on : std_logic_vector(N_CHANNELS - 1 downto 0) := (others => '0');
-    signal i_note_off : std_logic_vector(N_CHANNELS - 1 downto 0) := (others => '0');
     signal i_adsr_ctrl : t_adsr_ctrl_array := (others => (
         attack_step => (others => '0'),
         decay_step => (others => '0'),
@@ -92,7 +90,6 @@ begin
         i_clk => i_clk,
         i_reset => i_reset,
         i_note_on => i_note_on,
-        i_note_off => i_note_off,
         i_adsr_ctrl => i_adsr_ctrl,
         o_envelope => o_envelope
         );
@@ -123,16 +120,12 @@ begin
         i_note_on(0) <= '1';
         i_note_on(1) <= '1';
         wait for i_clk_period;
-        i_note_on(0) <= '0';
-        i_note_on(1) <= '0';
         wait for attack_time;
         wait for decay_time;
         wait for sustain_time;
-        i_note_off(0) <= '1';
-        i_note_off(1) <= '1';
+        i_note_on(0) <= '0';
+        i_note_on(1) <= '0';
         wait for i_clk_period;
-        i_note_off(0) <= '0';
-        i_note_off(1) <= '0';
 
         wait;
     end process;

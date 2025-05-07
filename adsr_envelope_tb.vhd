@@ -47,7 +47,6 @@ architecture behavior of adsr_envelope_tb is
         i_reset : in std_logic;
         i_en : in std_logic;
         i_note_on : in std_logic;
-        i_note_off : in std_logic;
         i_adsr_ctrl : in t_adsr_ctrl;
         o_envelope : out t_adsr_envelope
         );
@@ -59,7 +58,6 @@ architecture behavior of adsr_envelope_tb is
     signal i_reset : std_logic := '0';
     signal i_en : std_logic := '0';
     signal i_note_on : std_logic := '0';
-    signal i_note_off : std_logic := '0';
     signal i_adsr_ctrl : t_adsr_ctrl := (
         attack_step => (others => '0'),
         decay_step => (others => '0'),
@@ -97,7 +95,6 @@ begin
         i_reset => i_reset,
         i_en => i_en,
         i_note_on => i_note_on,
-        i_note_off => i_note_off,
         i_adsr_ctrl => i_adsr_ctrl,
         o_envelope => o_envelope
         );
@@ -137,13 +134,11 @@ begin
 
         i_note_on <= '1';
         wait for i_clk_period;
-        i_note_on <= '0';
         wait for attack_time;
         wait for decay_time;
         wait for sustain_time;
-        i_note_off <= '1';
+        i_note_on <= '0';
         wait for i_clk_period;
-        i_note_off <= '0';
 
         wait;
     end process;
