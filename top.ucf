@@ -1,0 +1,29 @@
+
+#Created by Constraints Editor (xc6slx9-csg324-2) - 2025/05/06
+NET "i_clk" TNM_NET = "i_clk";
+TIMESPEC TS_i_clk = PERIOD "i_clk" 100 MHz HIGH 50 %;
+
+NET "i_clk" LOC = V10;
+NET "i_clk" IOSTANDARD = LVCMOS33;
+
+NET "i_reset" LOC = K18;
+NET "i_reset" IOSTANDARD = LVCMOS33;
+NET "i_reset" PULLUP;
+
+NET "i_rx" LOC = H17;
+NET "i_rx" IOSTANDARD = LVCMOS33;
+
+NET "o_result" LOC = B16;
+NET "o_result" IOSTANDARD = LVCMOS33;
+NET "o_result" DRIVE = 8;
+NET "o_result" SLEW = FAST;
+
+NET "o_ready" LOC = T18;
+NET "o_ready" IOSTANDARD = LVCMOS33;
+NET "o_ready" DRIVE = 8;
+NET "o_ready" SLEW = FAST;
+
+NET "o_error" LOC = T17;
+NET "o_error" IOSTANDARD = LVCMOS33;
+NET "o_error" DRIVE = 8;
+NET "o_error" SLEW = FAST;

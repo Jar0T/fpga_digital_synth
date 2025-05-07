@@ -48,33 +48,37 @@ architecture behavior of top_tb is
     Port(
         i_clk : in std_logic;
         i_reset : in std_logic;
-        i_ch_sel : in integer range 0 to N_CHANNELS - 1;
-        i_en : in std_logic;
-        i_note_on : in std_logic;
-        i_note_off : in std_logic;
-        i_phase_step : in unsigned(PHASE_WIDTH - 1 downto 0);
-        o_result : out std_logic
+        i_rx : in std_logic;
+        o_result : out std_logic;
+        o_ready : out std_logic;
+        o_error : out std_logic
         );
     end component;
 
     --Inputs
     signal i_clk : std_logic := '0';
-    signal i_reset : std_logic := '0';
-    signal i_ch_sel : integer range 0 to N_CHANNELS - 1 := 0;
-    signal i_en : std_logic := '0';
-    signal i_note_on : std_logic := '0';
-    signal i_note_off : std_logic := '0';
-    signal i_phase_step : unsigned(PHASE_WIDTH - 1 downto 0) := (others => '0');
+    signal i_reset : std_logic := '1';
+    signal i_rx : std_logic := '1';
 
     --Outputs
     signal o_result : std_logic;
+    signal o_ready : std_logic;
+    signal o_error : std_logic;
 
     -- Clock period definitions
     constant i_clk_period : time := 10 ns;
 
-    constant f_out_base : integer := 220;
-    constant f_clk : integer := 100_000_000;
-    constant base_phase_step : integer := (f_out_base * (2**PHASE_WIDTH)) / f_clk;
+    constant baud_period : time := 40 ns;
+    
+    type byte_array is array(0 to 35) of std_logic_vector(7 downto 0);
+    signal s_tx_data : byte_array := (
+        X"00", X"02", X"FF", X"FF", X"FF", X"FF", -- Attack 0xFFFFFFFF
+        X"00", X"03", X"FF", X"FF", X"FF", X"FF", -- Decay 0xFFFFFFFF
+        X"00", X"04", X"FF", X"FF", X"FF", X"FF", -- Sustain 0xFFFFFFFF
+        X"00", X"05", X"FF", X"FF", X"FF", X"FF", -- Release 0xFFFFFFFF
+        X"00", X"00", X"47", X"27", X"01", X"00", -- Phase step 0x00012747
+        X"00", X"01", X"01", X"00", X"00", X"00"  -- Turn note on
+    );
  
 begin
  
@@ -82,12 +86,10 @@ begin
     uut: top Port map(
         i_clk => i_clk,
         i_reset => i_reset,
-        i_ch_sel => i_ch_sel,
-        i_en => i_en,
-        i_note_on => i_note_on,
-        i_note_off => i_note_off,
-        i_phase_step => i_phase_step,
-        o_result => o_result
+        i_rx => i_rx,
+        o_result => o_result,
+        o_ready => o_ready,
+        o_error => o_error
         );
 
     -- Clock process definitions
@@ -99,17 +101,28 @@ begin
 
     -- Stimulus process
     stim_proc: process
+        procedure send_uart_byte(data : in std_logic_vector(7 downto 0)) is
+        begin
+            -- start bit
+            i_rx <= '0';
+            wait for baud_period;
+            
+            for i in 0 to 7 loop
+                i_rx <= data(i);
+                wait for baud_period;
+            end loop;
+            
+            i_rx <= '1';
+            wait for baud_period;
+        end send_uart_byte;
     begin		
         -- insert stimulus here
-        i_note_on <= '1';
-        i_en <= '1';
-        for i in 1 to 1 loop
-            i_phase_step <= to_unsigned(base_phase_step * i, PHASE_WIDTH);
-            i_ch_sel <= i - 1;
-            wait for i_clk_period;
+        wait for baud_period * 5.5;
+        
+        for i in 0 to 35 loop
+            send_uart_byte(s_tx_data(i));
+            wait for baud_period;
         end loop;
-        i_en <= '0';
-        wait for i_clk_period;
 
         wait;
     end process;

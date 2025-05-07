@@ -13,7 +13,7 @@ use IEEE.NUMERIC_STD.ALL;
 
 package common_pkg is
 
-    constant N_CHANNELS : integer := 4;
+    constant N_CHANNELS : integer := 8;
     
     constant clk_freq : integer := 100_000_000;
     constant sample_freq : integer := 48_000;

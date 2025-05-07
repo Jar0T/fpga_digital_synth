@@ -39,15 +39,10 @@ entity top is
     Port (
         i_clk : in std_logic;
         i_reset : in std_logic;
-        
-        i_ch_sel : in integer range 0 to N_CHANNELS - 1;
-        i_en : in std_logic;
-        
-        i_note_on : in std_logic;
-        i_note_off : in std_logic;
-        i_phase_step : in unsigned(PHASE_WIDTH - 1 downto 0);
-        
-        o_result : out std_logic
+        i_rx : in std_logic;
+        o_result : out std_logic;
+        o_ready : out std_logic;
+        o_error : out std_logic
     );
 end top;
 
@@ -70,7 +65,6 @@ architecture Behavioral of top is
         i_clk : in  std_logic;
         i_reset : in  std_logic;
         i_note_on : in std_logic_vector(N_CHANNELS - 1 downto 0);
-        i_note_off : in std_logic_vector(N_CHANNELS - 1 downto 0);
         i_adsr_ctrl : in t_adsr_ctrl_array;
         o_envelope : out t_envelope_array
         );
@@ -104,10 +98,23 @@ architecture Behavioral of top is
         );
     end component;
     
+    component uart_receiver
+    Generic (
+        g_clk_freq : integer := 100_000_000;    -- 100 MHz
+        g_baud_rate : integer := 115_200
+        );
+    Port (
+        i_clk : in std_logic;
+        i_reset : in std_logic;
+        i_rx : in std_logic;
+        o_data : out std_logic_vector (7 downto 0);
+        o_valid : out std_logic
+        );
+    end component;
+    
     signal s_phase_step : t_phase_step_array := (others => (others => '0'));
     signal s_sample : t_sample_array := (others => (others => '0'));
     signal s_note_on : std_logic_vector(N_CHANNELS - 1 downto 0) := (others => '0');
-    signal s_note_off : std_logic_vector(N_CHANNELS - 1 downto 0) := (others => '0');
     signal s_adsr_ctrl : t_adsr_ctrl_array := (others => (
         attack_step => (others => '0'),
         decay_step => (others => '0'),
@@ -123,12 +130,24 @@ architecture Behavioral of top is
         active => '0'
     ));
     signal s_mixed_signal : signed(SIGNAL_WIDTH - 1 downto 0) := (others => '0');
+    
+    signal s_rx_data : std_logic_vector(7 downto 0) := (others => '0');
+    signal s_rx_valid : std_logic := '0';
+    
+    signal s_channel, s_register : integer range 0 to 255 := 0;
+    signal s_rx_byte_num : integer range 0 to 5 := 0; -- channel + reg addr + 1-4 data bytes
+    
+    signal s_reset, s_ready, s_error : std_logic := '0';
 
 begin
 
+    s_reset <= not i_reset;
+    o_ready <= s_ready;
+    o_error <= s_error;
+
     Inst_oscillator: oscillator Port map(
         i_clk => i_clk,
-        i_reset => i_reset,
+        i_reset => s_reset,
         i_phase_step => s_phase_step,
         o_sample => s_sample,
         i_sample_addr => (others => '0'),
@@ -138,16 +157,15 @@ begin
     
     Inst_adsr_envelope_top: adsr_envelope_top Port map(
         i_clk => i_clk,
-        i_reset => i_reset,
+        i_reset => s_reset,
         i_note_on => s_note_on,
-        i_note_off => s_note_off,
         i_adsr_ctrl => s_adsr_ctrl,
         o_envelope => s_envelope
     );
     
     Inst_adsr_multiplier: adsr_multiplier Port map(
         i_clk => i_clk,
-        i_reset => i_reset,
+        i_reset => s_reset,
         i_sample => s_sample,
         i_envelope => s_envelope,
         o_signal => s_scaled_signal
@@ -155,31 +173,170 @@ begin
     
     Inst_mixer: mixer Port map(
         i_clk => i_clk,
-        i_reset => i_reset,
+        i_reset => s_reset,
         i_channels => s_scaled_signal,
         o_mixed_channels => s_mixed_signal
         );
     
     Inst_delta_sigma_dac: delta_sigma_dac Port map(
         i_clk => i_clk,
-        i_reset => i_reset,
+        i_reset => s_reset,
         i_sample => s_mixed_signal,
         o_result => o_result
         );
     
+    Inst_uart_receiver: uart_receiver
+    Generic map(
+        g_clk_freq => clk_freq,
+        g_baud_rate => 115_200
+        )
+    Port map(
+        i_clk => i_clk,
+        i_reset => s_reset,
+        i_rx => i_rx,
+        o_data => s_rx_data,
+        o_valid => s_rx_valid
+        );
+    
+    process(i_clk, s_rx_valid, s_reset)
+    begin
+        if rising_edge(i_clk) then
+            if s_reset = '1' then
+                s_rx_byte_num <= 0;
+                s_error <= '0';
+                s_note_on <= (others => '0');
+            elsif s_rx_valid = '1' then
+                case s_rx_byte_num is
+                    when 0 =>
+                        s_channel <= to_integer(unsigned(s_rx_data));
+                        s_rx_byte_num <= s_rx_byte_num + 1;
+                    
+                    when 1 =>
+                        s_register <= to_integer(unsigned(s_rx_data));
+                        s_rx_byte_num <= s_rx_byte_num + 1;
+                    
+                    when 2 =>
+                        s_rx_byte_num <= s_rx_byte_num + 1;
+                        case s_register is
+                            when 0 =>
+                                s_phase_step(s_channel)(7 downto 0) <= unsigned(s_rx_data);
+                            
+                            when 1 =>
+                                s_note_on(s_channel) <= s_rx_data(0);
+                            
+                            when 2 =>
+                                s_adsr_ctrl(s_channel).attack_step(7 downto 0) <= unsigned(s_rx_data);
+                            
+                            when 3 =>
+                                s_adsr_ctrl(s_channel).decay_step(7 downto 0) <= unsigned(s_rx_data);
+                            
+                            when 4 =>
+                                s_adsr_ctrl(s_channel).sustain_level(7 downto 0) <= unsigned(s_rx_data);
+                            
+                            when 5 =>
+                                s_adsr_ctrl(s_channel).release_step(7 downto 0) <= unsigned(s_rx_data);
+                                
+                            when others =>
+                                s_error <= '1';
+                            
+                        end case;
+                    
+                    when 3 =>
+                        s_rx_byte_num <= s_rx_byte_num + 1;
+                        case s_register is
+                            when 0 =>
+                                s_phase_step(s_channel)(15 downto 8) <= unsigned(s_rx_data);
+                            
+                            when 1 =>
+                            
+                            when 2 =>
+                                s_adsr_ctrl(s_channel).attack_step(15 downto 8) <= unsigned(s_rx_data);
+                            
+                            when 3 =>
+                                s_adsr_ctrl(s_channel).decay_step(15 downto 8) <= unsigned(s_rx_data);
+                            
+                            when 4 =>
+                                s_adsr_ctrl(s_channel).sustain_level(15 downto 8) <= unsigned(s_rx_data);
+                            
+                            when 5 =>
+                                s_adsr_ctrl(s_channel).release_step(15 downto 8) <= unsigned(s_rx_data);
+                                
+                            when others =>
+                                s_error <= '1';
+                            
+                        end case;
+                    
+                    when 4 =>
+                        s_rx_byte_num <= s_rx_byte_num + 1;
+                        case s_register is
+                            when 0 =>
+                                s_phase_step(s_channel)(23 downto 16) <= unsigned(s_rx_data);
+                            
+                            when 1 =>
+                            
+                            when 2 =>
+                                s_adsr_ctrl(s_channel).attack_step(23 downto 16) <= unsigned(s_rx_data);
+                            
+                            when 3 =>
+                                s_adsr_ctrl(s_channel).decay_step(23 downto 16) <= unsigned(s_rx_data);
+                            
+                            when 4 =>
+                                s_adsr_ctrl(s_channel).sustain_level(23 downto 16) <= unsigned(s_rx_data);
+                            
+                            when 5 =>
+                                s_adsr_ctrl(s_channel).release_step(23 downto 16) <= unsigned(s_rx_data);
+                                
+                            when others =>
+                                s_error <= '1';
+                            
+                        end case;
+                    
+                    when 5 =>
+                        s_rx_byte_num <= 0;
+                        case s_register is
+                            when 0 =>
+                                s_phase_step(s_channel)(31 downto 24) <= unsigned(s_rx_data);
+                            
+                            when 1 =>
+                            
+                            when 2 =>
+                                s_adsr_ctrl(s_channel).attack_step(31 downto 24) <= unsigned(s_rx_data);
+                            
+                            when 3 =>
+                                s_adsr_ctrl(s_channel).decay_step(31 downto 24) <= unsigned(s_rx_data);
+                            
+                            when 4 =>
+                                s_adsr_ctrl(s_channel).sustain_level(31 downto 24) <= unsigned(s_rx_data);
+                            
+                            when 5 =>
+                                s_adsr_ctrl(s_channel).release_step(31 downto 24) <= unsigned(s_rx_data);
+                                
+                            when others =>
+                                s_error <= '1';
+                            
+                        end case;
+                    
+                    when others =>
+                        s_rx_byte_num <= 0;
+                        s_error <= '1';
+                        
+                end case;
+            end if;
+        end if;
+    end process;
+    
     process(i_clk)
     begin
         if rising_edge(i_clk) then
-            if i_en = '1' then
-                s_phase_step(i_ch_sel) <= i_phase_step;
-                s_note_on(i_ch_sel) <= i_note_on;
-                s_note_off(i_ch_sel) <= i_note_off;
+            if s_reset = '1' then
+                s_ready <= '0';
+            else
+                if s_error = '1' then
+                    s_ready <= '0';
+                else
+                    s_ready <= '1';
+                end if;
             end if;
-            
-            s_adsr_ctrl(i_ch_sel).attack_step <= (others => '1');
-            s_adsr_ctrl(i_ch_sel).decay_step <= (others => '1');
-            s_adsr_ctrl(i_ch_sel).sustain_level <= (others => '1');
-            s_adsr_ctrl(i_ch_sel).release_step <= (others => '1');
         end if;
     end process;
 
