@@ -129,6 +129,20 @@ begin
             i_channels(i).active <= '0';
         end loop;
         wait for i_clk_period * N_CHANNELS;
+        
+        -- all channels active, but only 1 has non zero value
+        for i in N_CHANNELS - 1 downto 0 loop
+            i_channels(i).value <= (others => '0');
+            i_channels(i).active <= '1';
+        end loop;
+        i_channels(0).value <= to_signed(2**(SIGNAL_WIDTH - 1) - 1, SIGNAL_WIDTH);
+        wait for i_clk_period * N_CHANNELS;
+        
+        for i in 0 to N_CHANNELS - 1 loop
+            i_channels(i).value <= (others => '0');
+            i_channels(i).active <= '0';
+        end loop;
+        wait for i_clk_period * N_CHANNELS;
 
         wait;
     end process;
